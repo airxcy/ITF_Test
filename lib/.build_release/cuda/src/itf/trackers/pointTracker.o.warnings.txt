@@ -1,0 +1,281 @@
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h(9): warning: field initializers are a C++11 feature
+
+src/itf/trackers/pointTracker.cu(21): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(26): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(44): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(49): warning: variable "offset" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(65): warning: variable "y" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(66): warning: variable "x" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(90): warning: variable "h" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(95): warning: variable "alpha" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "ymid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(129): warning: variable "xmid" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(175): warning: expression has no effect
+
+src/itf/trackers/pointTracker.cu(204): warning: variable "frame_heigh" was declared but never referenced
+
+src/itf/trackers/pointTracker.cu(288): warning: variable "cur_Trkptr" was declared but never referenced
+
+./include/itf/trackers/buffgpu.h:9:20: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int NQue=0,buff_len=0,tailidx=0;
+                    ^
+./include/itf/trackers/buffgpu.h:9:34: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int NQue=0,buff_len=0,tailidx=0;
+                                  ^
+./include/itf/trackers/buffgpu.h:9:47: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int NQue=0,buff_len=0,tailidx=0;
+                                               ^
+./include/itf/trackers/trackers.h:100:28: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int frame_width=0, frame_height=0;
+                            ^
+./include/itf/trackers/trackers.h:100:46: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int frame_width=0, frame_height=0;
+                                              ^
+./include/itf/trackers/trackers.h:101:16: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int frameidx=0;
+                ^
+./include/itf/trackers/trackers.h:102:17: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     bool persDone=false,render=true;
+                 ^
+./include/itf/trackers/trackers.h:102:33: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     bool persDone=false,render=true;
+                                 ^
+./include/itf/trackers/trackers.h:106:17: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int nFeatures=0,nSearch=0;
+                 ^
+./include/itf/trackers/trackers.h:106:30: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int nFeatures=0,nSearch=0;
+                              ^
+./include/itf/trackers/trackers.h:109:17: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     bool applyseg=false;
+                 ^
+./include/itf/trackers/trackers.h:117:20: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     bool groupOnFlag=true;
+                    ^
+./include/itf/trackers/trackers.h:118:12: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int curK=0,pregroupN=0,groupN=0,maxgroupN=0;
+            ^
+./include/itf/trackers/trackers.h:118:27: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int curK=0,pregroupN=0,groupN=0,maxgroupN=0;
+                           ^
+./include/itf/trackers/trackers.h:118:39: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int curK=0,pregroupN=0,groupN=0,maxgroupN=0;
+                                       ^
+./include/itf/trackers/trackers.h:118:54: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int curK=0,pregroupN=0,groupN=0,maxgroupN=0;
+                                                      ^
+./include/itf/trackers/trackers.h:128:13: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int zoomW=340,zoomH=255;
+             ^
+./include/itf/trackers/trackers.h:128:26: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     int zoomW=340,zoomH=255;
+                          ^
+./include/itf/trackers/trackers.h:144:38: warning: non-static data member initializers only available with -std=c++11 or -std=gnu++11 [enabled by default]
+     unsigned char * d_renderMask=NULL;
+                                      ^

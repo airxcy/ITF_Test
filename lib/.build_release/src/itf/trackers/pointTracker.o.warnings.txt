@@ -1,0 +1,11 @@
+src/itf/trackers/pointTracker.cpp: In member function ‘void CrowdTracker::newBFS()’:
+src/itf/trackers/pointTracker.cpp:315:10: warning: unused variable ‘h_label’ [-Wunused-variable]
+     int* h_label=label->cpu_ptr();
+          ^
+src/itf/trackers/pointTracker.cpp:317:10: warning: unused variable ‘h_gcount’ [-Wunused-variable]
+     int* h_gcount=ptNumInGroup->cpu_ptr();
+          ^
+src/itf/trackers/pointTracker.cpp: In member function ‘void CrowdTracker::bfsearch()’:
+src/itf/trackers/pointTracker.cpp:389:27: warning: unused variable ‘nscore’ [-Wunused-variable]
+                     float nscore=0;
+                           ^

@@ -1,0 +1,40 @@
+examples/testGroup.cpp: In function ‘int main(int, char**)’:
+examples/testGroup.cpp:193:11: warning: unused variable ‘xg’ [-Wunused-variable]
+     float xg=pg->x,yg=pg->y;
+           ^
+examples/testGroup.cpp:193:20: warning: unused variable ‘yg’ [-Wunused-variable]
+     float xg=pg->x,yg=pg->y;
+                    ^
+examples/testGroup.cpp:187:27: warning: unused variable ‘r’ [-Wunused-variable]
+             unsigned char r=150,g=150,b=150;
+                           ^
+examples/testGroup.cpp:187:33: warning: unused variable ‘g’ [-Wunused-variable]
+             unsigned char r=150,g=150,b=150;
+                                 ^
+examples/testGroup.cpp:187:39: warning: unused variable ‘b’ [-Wunused-variable]
+             unsigned char r=150,g=150,b=150;
+                                       ^
+examples/testGroup.cpp:155:9: warning: variable ‘l0’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+         ^
+examples/testGroup.cpp:155:12: warning: variable ‘t0’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+            ^
+examples/testGroup.cpp:155:15: warning: variable ‘r0’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+               ^
+examples/testGroup.cpp:155:18: warning: variable ‘b0’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+                  ^
+examples/testGroup.cpp:155:21: warning: variable ‘l1’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+                     ^
+examples/testGroup.cpp:155:24: warning: variable ‘t1’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+                        ^
+examples/testGroup.cpp:155:27: warning: variable ‘r1’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+                           ^
+examples/testGroup.cpp:155:30: warning: variable ‘b1’ set but not used [-Wunused-but-set-variable]
+     int l0,t0,r0,b0,l1,t1,r1,b1;
+                              ^
