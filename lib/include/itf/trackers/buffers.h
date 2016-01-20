@@ -80,7 +80,7 @@ public:
     void clone(FeatBuff* target);
     void clear();
 };
-class BBoxBuff : public Buff<BB>
+class BBoxBuff : public Buff<BBox>
 {
 public:
     BBoxBuff():Buff(){}

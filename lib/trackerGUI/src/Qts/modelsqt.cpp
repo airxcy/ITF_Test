@@ -20,21 +20,21 @@ unsigned char feat_colos[6][3] =
     {0,255,255},
     {255,0,0},
 };
-BBox::BBox(QGraphicsItem * parent):QGraphicsItem(parent)
+VisualBBox::VisualBBox(QGraphicsItem * parent):QGraphicsItem(parent)
 {
     vtx[0]=10, vtx[1]=10, vtx[2]=200, vtx[3]=200;
     bbid=-1;
 }
-BBox::BBox(double l,double t,double r,double b,QGraphicsItem * parent):QGraphicsItem(parent)
+VisualBBox::VisualBBox(double l,double t,double r,double b,QGraphicsItem * parent):QGraphicsItem(parent)
 {
     vtx[0]=l, vtx[1]=t, vtx[2]=r, vtx[3]=b;
     bbid=-1;
 }
-QRectF BBox::boundingRect() const
+QRectF VisualBBox::boundingRect() const
 {
     return QRectF(vtx[0], vtx[1], vtx[2]-vtx[0], vtx[3]-vtx[1]);
 }
-void BBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,QWidget *widget)
+void VisualBBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,QWidget *widget)
 {
     prepareGeometryChange();
     painter->setPen(linePen);
@@ -43,13 +43,13 @@ void BBox::paint(QPainter *painter, const QStyleOptionGraphicsItem *option,QWidg
     painter->setFont(txtFont);
     painter->drawText(QRectF (vtx[0], vtx[1],12,12), Qt::AlignRight|Qt::AlignTop,txt);
 }
-void BBox::updateVtx(double l,double t,double r,double b)
+void VisualBBox::updateVtx(double l,double t,double r,double b)
 {
     //prepareGeometryChange();
     vtx[0]=l, vtx[1]=t, vtx[2]=r, vtx[3]=b;
     //prepareGeometryChange();
 }
-void BBox::setClr(unsigned char r,unsigned char g,unsigned char b)
+void VisualBBox::setClr(unsigned char r,unsigned char g,unsigned char b)
 {
     rgb[0]=r,rgb[1]=g,rgb[2]=b;
     linePen.setColor(QColor(r,g,b));

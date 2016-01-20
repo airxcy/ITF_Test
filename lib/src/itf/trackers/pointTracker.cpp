@@ -122,10 +122,28 @@ int CrowdTracker::init(int w, int h,unsigned char* framedata,int nPoints)
     groups->init(nFeatures,tracksGPU);
     groupsTrk = new GroupTracks();
     groupsTrk->init(nFeatures);
+    streams=std::vector<cudaStream_t>(MAXSTREAM);
+    for(int i=0;i<MAXSTREAM;i++)
+    {
+        cudaStreamCreate(&streams[i]);
+    }
+    overLap = new MemBuff<int>(nFeatures*nFeatures);
+    matchOld2New = new MemBuff<int>(nFeatures);
+    matchNew2Old = new MemBuff<int>(nFeatures);
+
+    rankCountNew = new MemBuff<int>(nFeatures);
+    rankCountOld = new MemBuff<int>(nFeatures);
+    rankingNew = new MemBuff<int>(nFeatures*nFeatures);
+    rankingOld = new MemBuff<int>(nFeatures*nFeatures);
+    scoreNew = new MemBuff<float>(nFeatures*nFeatures);
+    scoreOld = new MemBuff<float>(nFeatures*nFeatures);
+
     /**  render **/
     h_zoomFrame=(unsigned char *)zalloc(zoomW*zoomH*3,sizeof(unsigned char));
-    gpu_zalloc(d_renderMask,frame_width*frame_height*3,sizeof(unsigned char));
+    renderMask=new MemBuff<unsigned char>(frame_width*frame_height,3);
     clrvec = new MemBuff<unsigned char>(nFeatures,3);
+
+
 
     /** Self Init **/
     selfinit(framedata);
@@ -298,12 +316,14 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
         if(groupN>0)
         {
             if(groupN>maxgroupN)maxgroupN=groupN;
+
             unsigned char* h_clrvec=clrvec->cpu_ptr();
             for(int i=0;i<maxgroupN;i++)
             {
                 HSVtoRGB(h_clrvec+i*3,h_clrvec+i*3+1,h_clrvec+i*3+2,i/(maxgroupN+0.01)*360,1,1);
             }
             makeGroups();
+            clrvec->SyncH2D();
             matchGroups();
         }
     }

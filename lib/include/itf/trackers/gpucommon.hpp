@@ -8,7 +8,7 @@
 #include <cuda_runtime.h>
 #define gpu_zalloc(ptr, num, size) cudaMalloc(&ptr,size*num);cudaMemset(ptr,0,size*num);
 #define  NUMTHREAD 1024
-
+#define  MAXSTREAM 32 //Kepler Arch
 __host__ __device__ __forceinline__ int divUp(int total, int grain)
 {
     return (total + grain - 1) / grain;

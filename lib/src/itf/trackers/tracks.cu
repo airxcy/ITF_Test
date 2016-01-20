@@ -5,9 +5,10 @@
 template <typename ELEM_T>
 MemBuff<ELEM_T>::MemBuff(int n, int c)
 {
-    elem_size=n;
+    count_size=n;
     channel=c;
-    byte_size=elem_size*channel*sizeof(ELEM_T);
+    elem_size=sizeof(ELEM_T);
+    byte_size=count_size*channel*elem_size;
     gpu_zalloc(d_data,byte_size,1);
     h_data =(ELEM_T *)zalloc(byte_size,1);
 }
@@ -100,22 +101,24 @@ void Group::init(int maxn,Tracks* trks)
 {
     tracks=trks;
     trkPtsNum=tracks->nQue;
-    trkPtsIdx = new MemBuff<int>(trkPtsNum*maxn);
+    trkPtsIdx = new MemBuff<int>(maxn,trkPtsNum);
     trkPtsIdxPtr=trkPtsIdx->gpu_ptr();
     ptsNum = new MemBuff<int>(maxn);
     ptsNumPtr=ptsNum->gpu_ptr();
-    trkPts = new MemBuff<float2>(trkPtsNum*maxn);
+    trkPts = new MemBuff<float2>(maxn,trkPtsNum);
     trkPtsPtr=trkPts->gpu_ptr();
     com = new MemBuff<float2>(maxn);
     comPtr=com->gpu_ptr();
     velo = new MemBuff<float2>(maxn);
     veloPtr=velo->gpu_ptr();
-    bBox = new MemBuff<int>(maxn,4);
+    bBox = new MemBuff<BBox>(maxn);
     bBoxPtr = bBox->gpu_ptr();
-    polygon= new MemBuff<float2>(trkPtsNum*maxn);
+    polygon= new MemBuff<float2>(maxn,trkPtsNum);
     polygonPtr=polygon->gpu_ptr();
     polyCount = new MemBuff<int>(maxn);
     polyCountPtr=polyCount->gpu_ptr();
+    area= new MemBuff<float>(maxn);
+    areaPtr = area->gpu_ptr();
 }
 void Group::SyncD2H()
 {
@@ -127,6 +130,7 @@ void Group::SyncD2H()
     bBox->SyncD2H();
     polygon->SyncD2H();
     polyCount->SyncD2H();
+    area->SyncD2H();
 }
 void Group::trkPtsSyncD2H()
 {
@@ -166,21 +170,95 @@ void GroupTrack::init(int maxn,Tracks* trks)
     tailidx=0,len=0;
     Group::init(buffLen,trks);
 }
-void GroupTracks::addGroups(Groups* groups,int i)
+float GroupTrack::clear()
 {
-    if(numGroup<maxNumGroup)
+    tailidx=0,len=0;
+}
+BBox* GroupTrack::getCurBBox()
+{
+    return getCur_(bBox->cpu_ptr());
+}
+float GroupTrack::getCurArea()
+{
+    return *(getCur_(area->cpu_ptr()));
+}
+
+#define copyFeat(feat) \
+    memcpy(getNext_(feat->cpu_ptr()),groups->feat->cpuAt(idx),feat->channel*feat->elem_size); \
+    cudaMemcpy(getNext_(feat->gpu_ptr()),groups->feat->gpuAt(idx),feat->channel*feat->elem_size,cudaMemcpyDeviceToDevice);
+void GroupTrack::updateFrom(Groups* groups,int idx)
+{
+//    memcpy(getNext_(trkPtsIdx->cpu_ptr()),groups->trkPtsIdx->cpuAt(idx),trkPtsIdx->channel*trkPtsIdx->elem_size);
+//    cudaMemcpy(getNext_(trkPtsIdx->gpu_ptr()),groups->trkPtsIdx->gpuAt(idx),trkPtsIdx->channel*trkPtsIdx->elem_size);
+    copyFeat(trkPtsIdx)
+    copyFeat(ptsNum)
+    copyFeat(trkPts)
+    copyFeat(com)
+    copyFeat(velo)
+    copyFeat(bBox)
+    copyFeat(polygon)
+    copyFeat(polyCount)
+    copyFeat(area)
+}
+
+void GroupTracks::clear(int idx)
+{
+    if(idx<numGroup)
     {
-        GroupTrack* nextGroup = getPtr(numGroup);
-        nextGroup = new GroupTrack();
+        GroupTrack* cpuPtr = getPtr(idx);
+        GroupTrack* gpuPtr = groupTracks->gpu_ptr()+idx;
+        cpuPtr->clear();
+        cudaMemcpy(gpuPtr,cpuPtr,sizeof(GroupTrack),cudaMemcpyHostToDevice);
+        (*vacancy)[idx]=0;
+    }
+    vacancy->SyncH2D();
+}
+int GroupTracks::addGroup(Groups* groups,int newIdx)
+{
+    int addidx = numGroup;
+    for(int i=0; i<numGroup; i++)
+    {
+        if( !(*vacancy)[0] )
+        {
+            addidx = i;
+            break;
+        }
+    }
+    if(addidx>=numGroup&&numGroup<maxNumGroup)
+    {
+        GroupTrack* nextGroup = getPtr(addidx);
         nextGroup->init(buffLen,groups->tracks);
+        nextGroup->updateFrom(groups,newIdx);
         GroupTrack* gpuPtr = groupTracks->gpu_ptr()+numGroup;
         cudaMemcpy(gpuPtr,nextGroup,sizeof(GroupTrack),cudaMemcpyHostToDevice);
         numGroup++;
     }
+    else if(addidx<numGroup)
+    {
+        GroupTrack* cpuPtr = getPtr(addidx);
+        GroupTrack* gpuPtr = groupTracks->gpu_ptr()+addidx;
+        cpuPtr->clear();
+        cpuPtr->updateFrom(groups,newIdx);
+        cudaMemcpy(gpuPtr,cpuPtr,sizeof(GroupTrack),cudaMemcpyHostToDevice);
+        (*vacancy)[addidx]=1;
+    }
+    vacancy->SyncH2D();
+    return addidx;
+}
+
+
+
+BBox* GroupTracks::getCurBBox(int i)
+{
+    return getPtr(i)->getCurBBox();
+}
+float GroupTracks::getCurArea(int i)
+{
+    return getPtr(i)->getCurArea();
 }
 void GroupTracks::init(int maxn)
 {
     numGroup=0,buffLen=10,maxNumGroup=maxn;
     groupTracks = new MemBuff<GroupTrack>(maxn);
-
+    vacancy = new MemBuff<int>(maxn);
 }

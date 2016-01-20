@@ -132,6 +132,7 @@ private:
     cudaStream_t cornerStream;
     cv::gpu::Stream cornerCVStream;
     cudaStream_t CorrStream;
+    std::vector<cudaStream_t> streams;
     //cv::gpu::GoodFeaturesToTrackDetector_GPU* detector;
     TargetFinder* detector;
     cv::gpu::PyrLKOpticalFlow* tracker;
@@ -141,7 +142,7 @@ private:
     unsigned char * d_rgbframedata;
     MemBuff<float>* persMap;
     //Rendering
-    unsigned char * d_renderMask=NULL;
+    MemBuff<unsigned char>* renderMask;
     MemBuff<unsigned char>* clrvec;
     //Tracking
     MemBuff<unsigned char> *mask,*roimask,*segmask,*segNeg;
@@ -153,6 +154,10 @@ private:
     int *tmpn,*idxmap;
     Groups* groups;
     GroupTracks* groupsTrk;
+    MemBuff<int>* overLap;
+    MemBuff<int>* matchOld2New,* matchNew2Old;
+    MemBuff<int>* rankingOld,* rankingNew,* rankCountOld,* rankCountNew;
+    MemBuff<float>* scoreOld,* scoreNew;
     //cublasHandle_t handle;
 };
 

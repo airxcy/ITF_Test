@@ -192,7 +192,7 @@ void FeatBuff::clear()
     isCurved=false;
     Buff::clear();
 }
-template class Buff <BB>;
+template class Buff <BBox>;
 
 template <typename ELEM_T>
 Map3D<ELEM_T>::Map3D()

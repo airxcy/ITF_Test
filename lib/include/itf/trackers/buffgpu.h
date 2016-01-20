@@ -3,6 +3,7 @@
 #include "itf/trackers/trackertype.h"
 #include <driver_types.h>
 #include <vector_types.h>
+#include <vector>
 template <typename ELEM_T> class BuffGPU
 {
 public:
@@ -24,7 +25,7 @@ public:
 template <typename ELEM_T> class MemBuff//all syncronos Memory
 {
 public:
-    int byte_size,elem_size,channel;
+    int byte_size,count_size,elem_size,channel;
     ELEM_T* d_data,*h_data;
     MemBuff(int n,int c=1);
     void SyncD2H();
@@ -36,8 +37,11 @@ public:
     void toZeroD();
     void toZeroH();
     void copyFrom(MemBuff<ELEM_T> *src);
-    ELEM_T* gpu_ptr(){return d_data;}
-    ELEM_T* cpu_ptr(){return h_data;}
+    inline ELEM_T* gpu_ptr(){return d_data;}
+    inline ELEM_T* cpu_ptr(){return h_data;}
+    inline ELEM_T& operator[](int idx){return cpu_ptr()[idx*channel];}
+    ELEM_T* gpuAt(int idx){return gpu_ptr()+idx*channel;}
+    ELEM_T* cpuAt(int idx){return cpu_ptr()+idx*channel;}
 };
 
 template <typename ELEM_T> class BuffInfo //Que Buff Accessor
@@ -152,10 +156,16 @@ public:
         return info;
     }
 };
+template <typename ELEM_T> class VarType
+{
+    MemBuff<ELEM_T>* ObjPtr;
+    size_t size;
+};
 
 class Group
 {
 public:
+
     Tracks* tracks;
     int trkPtsNum;
     MemBuff<int>* trkPtsIdx;
@@ -163,17 +173,25 @@ public:
     MemBuff<float2>* trkPts;
     MemBuff<float2>* com;
     MemBuff<float2>* velo;
-    MemBuff<int>* bBox;
+    MemBuff<BBox>* bBox;
     MemBuff<float2>* polygon;
     MemBuff<int>* polyCount;
+    MemBuff<float>* area;
     int* trkPtsIdxPtr;
     int* ptsNumPtr;
     float2* trkPtsPtr;
     float2* comPtr;
     float2* veloPtr;
-    int* bBoxPtr;
+    BBox* bBoxPtr;
     float2* polygonPtr;
     int* polyCountPtr;
+    float* areaPtr;
+    /*
+     *  to add New Features
+     * add MemBuff and ptr in header
+     * add definition in init()
+     * add Sync in in Sync();
+     */
     void init(int maxn,Tracks* trks);
     void SyncD2H();
     void polySyncH2D();
@@ -199,6 +217,12 @@ public:
     int* bBoxPtr;
     */
     void init(int maxn, Tracks *trks);
+
+    template<typename ELEM_T>
+    __host__ __device__ __forceinline__ ELEM_T* getPtr_(ELEM_T* data_ptr,int i,int c=1)
+    {
+        return data_ptr+i*c;
+    }
 };
 
 class GroupTrack : public Group
@@ -221,12 +245,17 @@ public:
         int offset = (tailidx+buffLen-1)%buffLen;
         return data_ptr+offset*c;
     }
+
     template<typename ELEM_T>
     __host__ __device__ __forceinline__ ELEM_T* getNext_(ELEM_T* data_ptr,int c=1)
     {
         return data_ptr+tailidx*c;
     }
+    BBox* getCurBBox();
+    float getCurArea();
+    float clear();
     void init(int maxn,Tracks* trks);
+    void updateFrom(Groups* groups,int idx);
 
 };
 
@@ -235,12 +264,18 @@ class GroupTracks
 public:
     int numGroup,buffLen,maxNumGroup;
     MemBuff<GroupTrack>* groupTracks;
+    MemBuff<int>* vacancy;
     void init(int maxn);
-    GroupTrack* getPtr(int idx)
+    GroupTrack& getGroupGPU(int idx)
     {
-        return groupTracks->cpu_ptr()+idx;
+        return groupTracks->gpu_ptr()[idx];
     }
-    void addGroups(Groups* groups, int i);
+    GroupTrack& operator[](int idx){return groupTracks->cpu_ptr()[idx];}
+    GroupTrack* getPtr(int idx){return groupTracks->cpu_ptr()+idx;}
+    BBox *getCurBBox(int i);
+    float getCurArea(int i);
+    void clear(int idx);
+    int addGroup(Groups* groups, int newIdx);
 };
 #endif // BUFFGPU_H
 

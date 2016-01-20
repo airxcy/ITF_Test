@@ -7,11 +7,11 @@
 #include <QGraphicsObject>
 extern unsigned char feat_colos[6][3];
 class TrkScene;
-class BBox : public QGraphicsItem
+class VisualBBox : public QGraphicsItem
 {
 public:
-    BBox(double l,double t,double r,double b,QGraphicsItem * parent=0);
-    BBox(QGraphicsItem * parent=0);
+    VisualBBox(double l,double t,double r,double b,QGraphicsItem * parent=0);
+    VisualBBox(QGraphicsItem * parent=0);
     QPen linePen;
     QBrush inBrush;
     QFont txtFont;

@@ -80,7 +80,7 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
         float2* com = groups->com->cpu_ptr();
         float x0,y0,x1,y1;
         linepen.setWidth(2);
-        for(int i=0;i<tracks->nQue;i++)
+        for(int i=0;i<tracks->nQue&&false;i++)
         {
             int trklen = tracks->getLen(i);
             //std::cout<<trklen<<std::endl;
@@ -148,10 +148,11 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
                 }
             }
         }
+        /*
         int* groupSize = groups->ptsNum->cpu_ptr();
         int* groupVec= groups->trkPtsIdx->cpu_ptr();
         float2* groupVelo=groups->velo->cpu_ptr();
-        int* groupbBox=groups->bBox->cpu_ptr();
+        BBox* groupbBox=groups->bBox->cpu_ptr();
 
         for(int i=1;i<=groups->numGroups;i++)
         {
@@ -186,6 +187,7 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
                 painter->drawLine(polygon[j-1].x,polygon[j-1].y,polygon[j].x,polygon[j].y);
             }
         }
+        */
     }
 
     //update();

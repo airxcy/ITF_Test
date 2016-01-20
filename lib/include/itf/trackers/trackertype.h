@@ -33,13 +33,19 @@ typedef struct//optical flow vector (x0,y0)->(x1,y1) len is frame Time Span, idx
 
 typedef struct//Bounding Box
 {
-    double left;
-    double top;
-    double right;
-    double bottom;
-    int frameidx;
-}BB, *BB_p;
+    int left;
+    int top;
+    int right;
+    int bottom;
+}BBox, *BBox_p;
 
+typedef struct//Bounding Box
+{
+    int left;
+    int top;
+    int right;
+    int bottom;
+}BBoxFloat, *BBoxFloat_p;
 
 struct cvxPnt {
     float x, y;

@@ -16,6 +16,7 @@ ITFSRCDIR = $${ITFDIR}/src
 ITFLIBDIR = $${ITFDIR}/.build_release/lib
 ITFINCLUDEDIR = $${ITFDIR}/include
 
+
 HEADERS  += \
     includes/Qts/mainwindow.h \
     includes/Qts/streamthread.h \
