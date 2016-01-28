@@ -199,6 +199,7 @@ void GroupTrack::updateFrom(Groups* groups,int idx)
     copyFeat(polygon)
     copyFeat(polyCount)
     copyFeat(area)
+    increPtr();
 }
 
 void GroupTracks::clear(int idx)
@@ -218,7 +219,7 @@ int GroupTracks::addGroup(Groups* groups,int newIdx)
     int addidx = numGroup;
     for(int i=0; i<numGroup; i++)
     {
-        if( !(*vacancy)[0] )
+        if( !(*vacancy)[i] )
         {
             addidx = i;
             break;
@@ -231,6 +232,7 @@ int GroupTracks::addGroup(Groups* groups,int newIdx)
         nextGroup->updateFrom(groups,newIdx);
         GroupTrack* gpuPtr = groupTracks->gpu_ptr()+numGroup;
         cudaMemcpy(gpuPtr,nextGroup,sizeof(GroupTrack),cudaMemcpyHostToDevice);
+        (*vacancy)[addidx]=1;
         numGroup++;
     }
     else if(addidx<numGroup)

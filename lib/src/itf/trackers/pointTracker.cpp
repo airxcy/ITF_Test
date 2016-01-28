@@ -22,6 +22,7 @@ CrowdTracker::CrowdTracker()
     nFeatures=0,nSearch=0; 
     /**cuda **/
     persDone=false;
+    groupOnFlag=true;
 }
 CrowdTracker::~CrowdTracker()
 {
@@ -287,6 +288,9 @@ void CrowdTracker::PointTracking()
 }
 int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
 {
+    //if(fidx!=16)
+    {
+    updateGroupsTracks();
 
     frameidx=fidx;
     std::cout<<"frameidx:"<<frameidx<<std::endl;
@@ -295,6 +299,7 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
     Mat curframe(frame_height,frame_width,CV_8UC3,framedata);
     rgbMat.upload(curframe);
     gpu::cvtColor(rgbMat,gpuGray,CV_RGB2GRAY);
+
     PointTracking();
     findPoints();
     filterTrackGPU();
@@ -323,13 +328,17 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
                 HSVtoRGB(h_clrvec+i*3,h_clrvec+i*3+1,h_clrvec+i*3+2,i/(maxgroupN+0.01)*360,1,1);
             }
             makeGroups();
+
             clrvec->SyncH2D();
             matchGroups();
         }
     }
+
     tracksGPU->Sync();
     PersExcludeMask();
+
     Render(framedata);
+    }
     return 1;
 }
 

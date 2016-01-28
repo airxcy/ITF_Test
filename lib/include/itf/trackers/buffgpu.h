@@ -217,7 +217,6 @@ public:
     int* bBoxPtr;
     */
     void init(int maxn, Tracks *trks);
-
     template<typename ELEM_T>
     __host__ __device__ __forceinline__ ELEM_T* getPtr_(ELEM_T* data_ptr,int i,int c=1)
     {
@@ -266,9 +265,9 @@ public:
     MemBuff<GroupTrack>* groupTracks;
     MemBuff<int>* vacancy;
     void init(int maxn);
-    GroupTrack& getGroupGPU(int idx)
+    GroupTrack* getGroupGPU(int idx)
     {
-        return groupTracks->gpu_ptr()[idx];
+        return groupTracks->gpu_ptr()+idx;
     }
     GroupTrack& operator[](int idx){return groupTracks->cpu_ptr()[idx];}
     GroupTrack* getPtr(int idx){return groupTracks->cpu_ptr()+idx;}
@@ -277,5 +276,10 @@ public:
     void clear(int idx);
     int addGroup(Groups* groups, int newIdx);
 };
+
+__host__ __device__ __forceinline__ bool ptInBox(int x,int y,BBox& bbox)
+{
+    return (x>=bbox.left&&x<=bbox.right&&y>=bbox.top&&y<=bbox.bottom);
+}
 #endif // BUFFGPU_H
 

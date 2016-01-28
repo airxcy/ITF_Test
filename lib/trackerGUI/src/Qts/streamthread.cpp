@@ -286,7 +286,7 @@ void StreamThread::streaming()
                     start=std::clock() ;
                     fcounter=0;
                 }
-                //pause=true;
+                pause=true;
             }
             vwriter.release();
             break;

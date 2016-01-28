@@ -77,6 +77,7 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
         painter->setFont(QFont("System",20,2));
         Tracks* tracks = streamThd->tracker->getTracks();
         Groups* groups = streamThd->tracker->getGroups();
+        GroupTracks& groupsTrk = streamThd->tracker->getGroupsTrk();
         float2* com = groups->com->cpu_ptr();
         float x0,y0,x1,y1;
         linepen.setWidth(2);
@@ -148,7 +149,20 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
                 }
             }
         }
-        /*
+
+        linepen.setWidth(2);
+        linepen.setColor(QColor(255,255,255));
+        painter->setPen(linepen);
+        for(int i =0;i<groupsTrk.numGroup;i++)
+        {
+            if((*groupsTrk.vacancy)[i])
+            {
+                BBox* bbox = groupsTrk.getCurBBox(i);
+                painter->drawRect(bbox->left,bbox->top,bbox->right-bbox->left,bbox->bottom-bbox->top);
+
+            }
+        }
+
         int* groupSize = groups->ptsNum->cpu_ptr();
         int* groupVec= groups->trkPtsIdx->cpu_ptr();
         float2* groupVelo=groups->velo->cpu_ptr();
@@ -177,9 +191,11 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
             painter->setPen(linepen);
             painter->drawLine(com[i].x,com[i].y,dstx,dsty);
             linepen.setColor(QColor(0,0,0));
+            linepen.setStyle(Qt::DashLine);
             painter->setPen(linepen);
-//            painter->drawRect(groupbBox[i*4],groupbBox[i*4+1],groupbBox[i*4+2]-groupbBox[i*4]
-//                    ,groupbBox[i*4+3]-groupbBox[i*4+1]);
+            BBox& bb = groupbBox[i];
+            painter->drawRect(bb.left,bb.top,bb.right-bb.left,bb.bottom-bb.top);
+            linepen.setStyle(Qt::SolidLine);
             float2* polygon = groups->polygon->cpu_ptr()+i*nFeatures;
             int polyCount=groups->polyCount->cpu_ptr()[i];
             for(int j=1;j<polyCount;j++)
@@ -187,7 +203,6 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
                 painter->drawLine(polygon[j-1].x,polygon[j-1].y,polygon[j].x,polygon[j].y);
             }
         }
-        */
     }
 
     //update();

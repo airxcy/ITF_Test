@@ -4,6 +4,8 @@
 #include "thrust/sort.h"
 #include <iostream>
 #include <stdio.h>
+#include <numeric>
+
 using namespace cv;
 using namespace cv::gpu;
 __device__ int d_framewidth[1],d_frameheight[1];
@@ -43,7 +45,28 @@ __global__ void applyPersToMask(unsigned char* d_mask,float* d_curvec,float* d_p
         d_mask[globaly*d_framewidth[0]+globalx]=0;
     }
 }
+__global__ void  addNewPts(FeatPts* cur_ptr,int* lenVec,float2* new_ptr,float2* nextPtrs)
+{
+    int idx=threadIdx.x;
+    int dim=blockDim.x;
+    __shared__ int counter[1];
+    counter[0]=0;
+    __syncthreads();
 
+    if(lenVec[idx]<=0)
+    {
+        int posidx = atomicAdd(counter,1);
+        //printf("(%d,%.2f,%.2f)",posidx,new_ptr[posidx].x,new_ptr[posidx].y);
+        if(posidx<dim)
+        {
+            cur_ptr[idx].x=new_ptr[posidx].x;
+            cur_ptr[idx].y=new_ptr[posidx].y;
+            lenVec[idx]+=1;
+        }
+    }
+    nextPtrs[idx].x=cur_ptr[idx].x;
+    nextPtrs[idx].y=cur_ptr[idx].y;
+}
 __global__ void applyPointPersMask(unsigned char* d_mask,FeatPts* cur_ptr,int* lenVec,float* d_persMap)
 {
     int pidx=blockIdx.x;
@@ -67,6 +90,15 @@ __global__ void applyPointPersMask(unsigned char* d_mask,FeatPts* cur_ptr,int* l
         }
     }
 }
+void CrowdTracker::PersExcludeMask()
+{
+    addNewPts<<<1,nFeatures,0,cornerStream>>>(tracksGPU->curTrkptr,tracksGPU->lenVec,corners->gpu_ptr(),(float2* )gpuPrePts.data);
+    std::cout<<"applyPersToMask:"<<std::endl;
+    cudaMemcpyAsync(mask->gpu_ptr(),roimask->gpu_ptr(),frame_height*frame_width*sizeof(unsigned char),cudaMemcpyDeviceToDevice,cornerStream);
+    dim3 block(32, 32,1);
+    applyPointPersMask<<<nFeatures,block,0,cornerStream>>>(mask->gpu_ptr(),tracksGPU->curTrkptr,tracksGPU->lenVec,persMap->gpu_ptr());
+    corners->SyncD2HStream(cornerStream);
+}
 
 __global__ void applySegMask(unsigned char* d_mask,unsigned char* d_segmask,unsigned char* d_segNeg)
 {
@@ -84,40 +116,65 @@ __global__ void applySegMask(unsigned char* d_mask,unsigned char* d_segmask,unsi
 __global__ void renderFrame(unsigned char* d_renderMask,unsigned char* d_frameptr,int totallen)
 {
     int offset=(blockIdx.x*blockDim.x+threadIdx.x)*3;
+    int offsetp=blockIdx.x*blockDim.x+threadIdx.x;
     int maskval = d_renderMask[offset];
-    if(offset<totallen&&maskval)
+    if(offsetp<totallen)
     {
-        d_frameptr[offset]=d_frameptr[offset]*0.8+d_renderMask[offset]*0.2;
-        d_frameptr[offset+1]=d_frameptr[offset]*0.8+d_renderMask[offset+1]*0.2;
-        d_frameptr[offset+2]=d_frameptr[offset]*0.8+d_renderMask[offset+2]*0.2;
+        d_frameptr[offset]=d_frameptr[offset]*0.5+d_renderMask[offset]*0.5;
+        d_frameptr[offset+1]=d_frameptr[offset+1]*0.5+d_renderMask[offset+1]*0.5;
+        d_frameptr[offset+2]=d_frameptr[offset+2]*0.5+d_renderMask[offset+2]*0.5;
+//        d_frameptr[offset]=d_renderMask[offset]*0.5;
+//        d_frameptr[offset+1]=d_renderMask[offset+1]*0.5;
+//        d_frameptr[offset+2]=d_renderMask[offset+2]*0.5;
     }
 }
 
-__global__ void renderGroup(unsigned char* d_renderMask,FeatPts* cur_ptr,unsigned char* d_clrvec,float* d_persMap,int* d_neighbor)
+__global__ void renderGroup(unsigned char* d_renderMask,FeatPts* cur_ptr,int* lenVec,unsigned char* d_clrvec,float* d_persMap,int* d_neighbor)
 {
     int pidx=blockIdx.x;
-    int px=cur_ptr[pidx].x+0.5,py=cur_ptr[pidx].y+0.5;
-    int blocksize = blockDim.x;
-    int w=d_framewidth[0],h=d_frameheight[0];
-    float persval =d_persMap[py*w+px];
-    float range=Pers2Range(persval);
-    int centerOffset=blocksize/2;
-    int xoffset = threadIdx.x-centerOffset;
-    float alpha = 0.5;
-    for(int i=0;i<blocksize;i++)
+    int len=lenVec[pidx];
+    if(len>0)
     {
-        int yoffset = i-centerOffset;
+        float px=cur_ptr[pidx].x,py=cur_ptr[pidx].y;
+        int blocksize = blockDim.x;
+        int w=d_framewidth[0],h=d_frameheight[0];
+        int localx = threadIdx.x,localy=threadIdx.y;
+        int pxint = px+0.5,pyint = py+0.5;
+        float persval =d_persMap[pyint*w+pxint];
+        float range=Pers2Range(persval);
+        int offset=range+0.5;
+        int yoffset = localy-blocksize/2;
+        int xoffset = localx-blocksize/2;
         if(abs(yoffset)<range&&abs(xoffset)<range)
         {
-            int globalx=xoffset+px,globaly=yoffset+py;
-            int offset = globaly*w+globalx;
-            d_renderMask[offset*3]=150;
-            d_renderMask[offset*3+1]=150;
-            d_renderMask[offset*3+2]=150;
+            int globalx=xoffset+pxint,globaly=yoffset+pyint;
+            int globalOffset=(globaly*w+globalx)*3;
+            d_renderMask[globalOffset]=255;
+            d_renderMask[globalOffset+1]=0;
+            d_renderMask[globalOffset+2]=0;
         }
     }
 }
 
+void CrowdTracker::Render(unsigned char* framedata)
+{
+    /*
+    dim3 blockSize(32,32,1);
+    tracksGPU->lenData->SyncD2H();
+    int val=0;
+    for(int i=0;i<nFeatures;i++)
+    {
+        val+=(tracksGPU->lenData->cpu_ptr()[i]>0);
+    }
+    std::cout<<"Render:"<<val<<std::endl;
+    renderGroup<<<nFeatures,blockSize>>>(renderMask->gpu_ptr(),tracksGPU->curTrkptr,tracksGPU->lenVec,clrvec->gpu_ptr(),persMap->gpu_ptr(),nbCount->gpu_ptr());
+    */
+    int nblocks = (frame_height*frame_width)/nFeatures;
+    //renderMask->toZeroD();
+    renderFrame<<<nblocks,nFeatures>>>(renderMask->gpu_ptr(),rgbMat.data,frame_width*frame_height);
+    renderMask->toZeroD();
+    cudaMemcpy(framedata,rgbMat.data,frame_height*frame_width*3*sizeof(unsigned char),cudaMemcpyDeviceToHost);
+}
 
 __global__ void searchNeighbor(TracksInfo trkinfo,
                                int* d_neighbor,float* d_cosine,float* d_velo,float* d_distmat,
@@ -259,29 +316,23 @@ __global__ void filterTracks(TracksInfo trkinfo,uchar* status,float2* update_ptr
         trkinfo.nextVeloPtr[idx].x=vx,trkinfo.nextVeloPtr[idx].y=vy;
     }
 }
-
-__global__ void  addNewPts(FeatPts* cur_ptr,int* lenVec,float2* new_ptr,float2* nextPtrs)
+void CrowdTracker::filterTrackGPU()
 {
-    int idx=threadIdx.x;
-    int dim=blockDim.x;
-    __shared__ int counter[1];
-    counter[0]=0;
-    __syncthreads();
-
-    if(lenVec[idx]<=0)
-    {
-        int posidx = atomicAdd(counter,1);
-        //printf("(%d,%.2f,%.2f)",posidx,new_ptr[posidx].x,new_ptr[posidx].y);
-        if(posidx<dim)
-        {
-            cur_ptr[idx].x=new_ptr[posidx].x;
-            cur_ptr[idx].y=new_ptr[posidx].y;
-            lenVec[idx]=1;
-        }
-    }
-    nextPtrs[idx].x=cur_ptr[idx].x;
-    nextPtrs[idx].y=cur_ptr[idx].y;
+    trkInfo=tracksGPU->getInfoGPU();
+    trkInfo.preTrkptr=trkInfo.getVec_(trkInfo.trkDataPtr,minTrkLen-1);
+    /*
+    filterTracks<<<1,nFeatures>>>(tracksGPU->cur_gpu_ptr,tracksGPU->next_gpu_ptr,(float2 *)gpuNextPts.data,
+                                  tracksGPU->lendata->gpu_ptr(),gpuStatus.data,persMap->gpu_ptr(),
+                                  tracksGPU->NQue,tracksGPU->buff_len,tracksGPU->tailidx);
+    */
+    filterTracks<<<1,nFeatures>>>(trkInfo,gpuStatus.data,(float2 *)gpuNextPts.data,persMap->gpu_ptr());
+    tracksGPU->increPtr();
+    trkInfo=tracksGPU->getInfoGPU();
+    trkInfo.preTrkptr=trkInfo.getVec_(trkInfo.trkDataPtr,minTrkLen);
 }
+
+
+
 __global__ void  makeGroupKernel(int* labelidx,Groups groups,TracksInfo trkinfo)
 {
     int pidx=threadIdx.x;
@@ -363,28 +414,38 @@ __global__ void genPolygonKernel(Groups groups)
     }
     groups.polyCountPtr[gidx]=k;
 }
-__global__ void matchGroupKernel(GroupTrack groupTrk,Groups groups,int preIdx,int* overlap,int maxGroup,unsigned char* renderMask,unsigned char* clrvec)
+
+__global__ void  matchGroupKernel(GroupTrack groupTrk,Groups groups,int preIdx,int* overlap,int maxGroup,unsigned char* renderMask,unsigned char* clrvec)
 {
-    /*
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
     const int newIdx = blockIdx.z;
-    BBox& preBBox =*groupTrk.getCur_(groupTrk.bBoxPtr),newBBox=*groups.getPtr_(groups.bBoxPtr,newIdx);
-    float2 velo=*groupTrk.getCur_(groupTrk.veloPtr);
-    BBoxFloat curBBox={preBBox.left+velo.x,preBBox.top+velo.y,preBBox.right+velo.x,preBBox.bottom+velo.y};
-    if(!(curBBox.left>newBBox.right||curBBox.right<newBBox.left||curBBox.top>newBBox.bottom||curBBox.bottom<curBBox.top))
+    if(newIdx)
     {
-        int * overlapCounter=overlap+preIdx*maxGroup+newIdx;
-        int offset=(x*d_framewidth[0]+y)*3;
-        unsigned char curR = clrvec[preIdx*3],curG = clrvec[preIdx*3+1],curB = clrvec[preIdx*3+2];
-        unsigned char newR = clrvec[newIdx*3],newG = clrvec[newIdx*3+1],newB = clrvec[newIdx*3+2];
-        unsigned char r=(curR+newR)/2.0,g=(curG+newG)/2.0,b=(curB+newB)/2.0;
-        renderMask[offset]=renderMask[offset]*0.8+r*0.2;
-        renderMask[offset+1]=renderMask[offset+1]*0.8+g*0.2;
-        renderMask[offset+2]=renderMask[offset+2]*0.8+b*0.2;
-        atomicAdd(overlapCounter,1);
+
+        BBox& preBBox =*groupTrk.getCur_(groupTrk.bBoxPtr),newBBox=*groups.getPtr_(groups.bBoxPtr,newIdx);
+        int globalx=x+preBBox.left,globaly=y+preBBox.top;
+        float2 velo=*groupTrk.getCur_(groupTrk.veloPtr);
+        BBoxFloat curBBox={preBBox.left+velo.x,preBBox.top+velo.y,preBBox.right+velo.x,preBBox.bottom+velo.y};
+        if(!(curBBox.left>newBBox.right||curBBox.right<newBBox.left||curBBox.top>newBBox.bottom||curBBox.bottom<curBBox.top))
+        {
+            if(ptInBox(globalx,globaly,preBBox)&&ptInBox(globalx,globaly,newBBox))
+            {
+                int * overlapCounter=overlap+preIdx*maxGroup+newIdx;
+                if(globaly<d_frameheight[0]&&globalx<d_framewidth[0])
+                {
+                    int offset=(globaly*d_framewidth[0]+globalx)*3;
+                    unsigned char curR = clrvec[preIdx*3],curG = clrvec[preIdx*3+1],curB = clrvec[preIdx*3+2];
+                    unsigned char newR = clrvec[newIdx*3],newG = clrvec[newIdx*3+1],newB = clrvec[newIdx*3+2];
+                    unsigned char r=(curR+newR)/2.0,g=(curG+newG)/2.0,b=(curB+newB)/2.0;
+                    renderMask[offset]=renderMask[offset]*0.3+r*0.7;
+                    renderMask[offset+1]=renderMask[offset+1]*0.3+g*0.7;
+                    renderMask[offset+2]=renderMask[offset+2]*0.3+b*0.7;
+                }
+                atomicAdd(overlapCounter,1);
+            }
+        }
     }
-    */
 }
 __global__ void rankingKernel(int* overLap,int nFeatures
                               ,int* rankCountNew,int* rankCountOld
@@ -397,7 +458,8 @@ __global__ void rankingKernel(int* overLap,int nFeatures
     int newN = blockDim.x;
 
     int oldIdx = blockIdx.x,newIdx = threadIdx.y;
-    if(vacancy[newIdx]){
+    if(vacancy[newIdx])
+    {
         float overLapVal = overLap[oldIdx*nFeatures+newIdx];
         GroupTrack& oldTrk = groupsTrk[oldIdx];
         float areaOld = *(oldTrk.getCur_(oldTrk.areaPtr));
@@ -421,21 +483,89 @@ __global__ void rankingKernel(int* overLap,int nFeatures
         }
     }
 }
-void CrowdTracker::filterTrackGPU()
+void CrowdTracker::matchGroups()
 {
-    trkInfo=tracksGPU->getInfoGPU();
-    trkInfo.preTrkptr=trkInfo.getVec_(trkInfo.trkDataPtr,minTrkLen-1);
-    /*
-    filterTracks<<<1,nFeatures>>>(tracksGPU->cur_gpu_ptr,tracksGPU->next_gpu_ptr,(float2 *)gpuNextPts.data,
-                                  tracksGPU->lendata->gpu_ptr(),gpuStatus.data,persMap->gpu_ptr(),
-                                  tracksGPU->NQue,tracksGPU->buff_len,tracksGPU->tailidx);
-    */
-    //filterTracks<<<1,nFeatures>>>(trkInfo,gpuStatus.data,(float2 *)gpuNextPts.data,persMap->gpu_ptr());
-    tracksGPU->increPtr();
-    trkInfo=tracksGPU->getInfoGPU();
-    trkInfo.preTrkptr=trkInfo.getVec_(trkInfo.trkDataPtr,minTrkLen);
+    /** compute Score**/
+    int streamIdx=0;
+//    for(int i=0;i<groups->numGroups;i++)
+//    {
+    std::cout<<"groupsTrk->numGroup:"<<groupsTrk->numGroup<<std::endl;
+    overLap->toZeroD();
+    for(int j=0;j<groupsTrk->numGroup;j++)
+    {
+        if((*groupsTrk->vacancy)[j])
+        {
+            std::cout<<"old:"<<j<<std::endl;
+            BBox* bBox=groupsTrk->getCurBBox(j);
+            int maxW=bBox->right-bBox->left,maxH=bBox->bottom-bBox->top;
+            std::cout<<"bBox:"<<bBox->right<<","<<bBox->left<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
+            dim3 block(32, 32,1);
+            dim3 grid(divUp(maxW,32),divUp(maxH,32),groups->numGroups);
+            std::cout<<"grid:"<<grid.x<<","<<grid.y<<std::endl;
+            std::cout<<"block:"<<block.x<<","<<block.y<<std::endl;
+            matchGroupKernel<<<grid,block,0, streams[streamIdx] >>>((*groupsTrk)[j],*groups,j
+                                                                    ,overLap->gpu_ptr(),nFeatures,renderMask->gpu_ptr(),clrvec->gpu_ptr());
+            streamIdx=(streamIdx+1)%MAXSTREAM;
+        }
+    }
+//    }
+    // ranking
+    clearLock();
+    rankCountNew->toZeroD();
+    rankCountOld->toZeroD();
+    overLap->SyncD2H();
+    for(int i=0;i<groupsTrk->numGroup;i++)
+    {
+        for(int j=0;j<groups->numGroups;j++)
+        {
+            std::cout<<(*overLap)[i*nFeatures+j]<<",";
+        }
+        std::cout<<std::endl;
+    }
+    if(groupsTrk->numGroup>0&&groups->numGroups)
+    {
+        rankingKernel<<<groupsTrk->numGroup,groups->numGroups>>>(overLap->gpu_ptr(),nFeatures
+                                                             ,rankCountNew->gpu_ptr(),rankCountOld->gpu_ptr()
+                                                                ,rankingNew->gpu_ptr(),rankingOld->gpu_ptr()
+                                                                ,scoreNew->gpu_ptr(),scoreOld->gpu_ptr()
+                                                             ,groupsTrk->groupTracks->gpu_ptr(),*groups
+                                                             ,groupsTrk->vacancy->gpu_ptr());
+    }
 }
-
+void CrowdTracker::updateGroupsTracks()
+{
+    // Update Tracking Group
+    rankCountOld->SyncD2H();
+    rankCountNew->SyncD2H();
+    rankingNew->SyncD2H();
+    rankingOld->SyncD2H();
+    for(int i=0;i<groupsTrk->numGroup;i++)
+    {
+        if((*rankCountOld)[i]>0)
+        {
+            std::cout<<"update:"<<i<<std::endl;
+            //update
+            groupsTrk->getPtr(i)->updateFrom(groups,(*rankingOld)[i*nFeatures]);
+        }
+        else
+        {
+            //lost
+            std::cout<<"lost:"<<i<<std::endl;
+            groupsTrk->clear(i);
+        }
+    }
+    // Adding New Group
+    for(int i=1;i<groups->numGroups;i++)
+    {
+        if(!(*rankCountNew)[i])
+        {
+            int addidx = groupsTrk->addGroup(groups,i);
+            std::cout<<"adding:"<<i<<"added:"<<addidx<<std::endl;
+            BBox* bBox=groupsTrk->getCurBBox(addidx);
+            std::cout<<"bBox:"<<bBox->right<<","<<bBox->left<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
+        }
+    }
+}
 void CrowdTracker::findPoints()
 {
     std::cout<<"applySegMask"<<std::endl;
@@ -486,121 +616,24 @@ void CrowdTracker::makeGroups()
 
     makeGroupKernel<<<groupN,nFeatures>>>(label->gpu_ptr(),*groups,trkInfo);
     groups->SyncD2H();
-
+    for(int i=0;i<groups->numGroups;i++)
+    {
+        BBox& bbox= (*groups->bBox)[i];
+        std::cout<<i<<":"<<bbox.top<<","<<bbox.left<<","<<bbox.bottom<<","<<bbox.right<<std::endl;
+    }
+    /*
     for(int i=1;i<=groupN;i++)
     {
         buildPolygon(groups->trkPts->cpu_ptr()+i*nFeatures,groups->ptsNum->cpu_ptr()[i]
                     ,groups->polygon->cpu_ptr()+i*nFeatures,groups->polyCount->cpu_ptr()[i]);
     }
     groups->polySyncH2D();
-
+    */
     //genPolygonKernel<<<nFeatures,1>>>(*groups);
 
 }
 
-void CrowdTracker::matchGroups()
-{
-    /** compute Score**/
-    int streamIdx=0;
-//    for(int i=0;i<groups->numGroups;i++)
-//    {
 
-    for(int j=0;j<groupsTrk->numGroup;j++)
-    {
-        if((*groupsTrk->vacancy)[j])
-        {
-            BBox* bBox=groupsTrk->getCurBBox(j);
-            int maxW=bBox->right-bBox->left,maxH=bBox->bottom-bBox->top;
-            dim3 block(32, 32,1);
-            dim3 grid(divUp(maxW,32),divUp(maxH,32),groups->numGroups);
-            std::cout<<grid.x<<grid.y<<std::endl;
-            std::cout<<block.x<<block.y<<std::endl;
-            matchGroupKernel<<<grid,block,0, streams[streamIdx] >>>(groupsTrk->getGroupGPU(j),*groups,j
-                                                                    ,overLap->gpu_ptr(),nFeatures,renderMask->gpu_ptr(),clrvec->gpu_ptr());
-            streamIdx=(streamIdx+1)%MAXSTREAM;
-        }
-    }
-//    }
 
-    // ranking
-    clearLock();
-    rankCountNew->toZeroD();
-    rankCountOld->toZeroD();
-    rankingKernel<<<groupsTrk->numGroup,groups->numGroups>>>(overLap->gpu_ptr(),nFeatures
-                                                             ,rankCountNew->gpu_ptr(),rankCountOld->gpu_ptr()
-                                                                ,rankingNew->gpu_ptr(),rankingOld->gpu_ptr()
-                                                                ,scoreNew->gpu_ptr(),scoreOld->gpu_ptr()
-                                                             ,groupsTrk->groupTracks->gpu_ptr(),*groups
-                                                             ,groupsTrk->vacancy->gpu_ptr());
-
-    // Update Tracking Group
-    rankCountOld->SyncD2H();
-    rankCountNew->SyncD2H();
-    rankingNew->SyncD2H();
-    rankingOld->SyncD2H();
-    for(int i=0;i<groupsTrk->numGroup;i++)
-    {
-        if((*rankCountOld)[i]>0)
-        {
-            //update
-            groupsTrk->getPtr(i)->updateFrom(groups,(*rankingOld)[i*nFeatures]);
-        }
-        else
-        {
-            //lost
-            groupsTrk->clear(i);
-        }
-    }
-    // Adding New Group
-    for(int i=0;i<groups->numGroups;i++)
-    {
-        if(!(*rankCountNew)[i])
-        {
-            groupsTrk->addGroup(groups,(*rankingNew)[i*nFeatures]);
-        }
-    }
-    /*
-    overLap.SyncD2H();
-    for(int i=0;i<nFeatures;i++)
-    {
-        matchOld2New[i]=-1;
-        matchNew2Old[i]=-1;
-        matchScoreNew2Old.toZeroH();
-    }
-    for(int i=0;i<groupsTrk->numGroup;i++)
-    {
-        for(int j=0;j<groups->numGroups;j++)
-        {
-            float overlapVal = overLap.cpu_ptr()[i*nFeatures+j];
-            float areaOld = groupsTrk->getCurArea(i);
-            float areaNew = groups->area->cpu_ptr()[j];
-            float score = overlapVal/(areaOld+areaNew)*2;
-            if(score>0.9)
-            {
-
-                matchOld2New[i]=j;
-                matchNew2Old[j]=i;
-            }
-        }
-    }
-    groupsTrk->updateGroup(groups,matchOld2New);
-    */
-}
-void CrowdTracker::PersExcludeMask()
-{
-    addNewPts<<<1,nFeatures,0,cornerStream>>>(tracksGPU->curTrkptr,tracksGPU->lenVec,corners->gpu_ptr(),(float2* )gpuPrePts.data);
-    std::cout<<"applyPersToMask:"<<std::endl;
-    cudaMemcpyAsync(mask->gpu_ptr(),roimask->gpu_ptr(),frame_height*frame_width*sizeof(unsigned char),cudaMemcpyDeviceToDevice,cornerStream);
-    dim3 block(32, 32,1);
-    applyPointPersMask<<<nFeatures,block,0,cornerStream>>>(mask->gpu_ptr(),tracksGPU->curTrkptr,tracksGPU->lenVec,persMap->gpu_ptr());
-    corners->SyncD2HStream(cornerStream);
-}
-void CrowdTracker::Render(unsigned char * framedata)
-{
-    int nblocks = (frame_height*frame_width)/nFeatures;
-    renderMask->toZeroD();
-    renderFrame<<<nblocks,nFeatures>>>(renderMask->gpu_ptr(),rgbMat.data,frame_width*frame_height);
-    cudaMemcpy(framedata,rgbMat.data,frame_height*frame_width*3*sizeof(unsigned char),cudaMemcpyDeviceToHost);
-}
 
 

@@ -94,6 +94,7 @@ public:
     int* getPreLabel(){return prelabel->cpu_ptr();}
     unsigned char* getClrvec(){return clrvec->cpu_ptr();}
     Groups* getGroups(){return groups;}
+    GroupTracks& getGroupsTrk(){return *groupsTrk;}
 private:
     /** Basic **/
     int frame_width=0, frame_height=0;
@@ -112,6 +113,7 @@ private:
     void findPoints();
     void filterTrackGPU();
 
+
     /** Grouping **/
     bool groupOnFlag=true;
     int curK=0,pregroupN=0,groupN=0,maxgroupN=0;
@@ -122,6 +124,7 @@ private:
     void newBFS();
     void makeGroups();
     void matchGroups();
+    void updateGroupsTracks();
     MemBuff<int>* prelabel,* label,* ptNumInGroup;
 
     /** Render Frame **/
