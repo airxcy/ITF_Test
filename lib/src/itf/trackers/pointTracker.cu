@@ -9,7 +9,7 @@
 using namespace cv;
 using namespace cv::gpu;
 __device__ int d_framewidth[1],d_frameheight[1];
-__device__ unsigned char lockOld[NUMTHREAD],lockNew[NUMTHREAD];
+__device__ int lockOld[NUMTHREAD],lockNew[NUMTHREAD];
 
 void __global__ clearLockKernel()
 {
@@ -370,16 +370,21 @@ __global__ void  makeGroupKernel(int* labelidx,Groups groups,TracksInfo trkinfo)
         atomicMax(&bot,py);
     }
     __syncthreads();
-    count_ptr[gidx]=counter;
-    groups.comPtr[gidx].x=com[0]/counter;
-    groups.comPtr[gidx].y=com[1]/counter;
-    groups.veloPtr[gidx].x=velo[0]/counter;
-    groups.veloPtr[gidx].y=velo[1]/counter;
-    groups.bBoxPtr[gidx].left=left;
-    groups.bBoxPtr[gidx].top=top;
-    groups.bBoxPtr[gidx].right=right;
-    groups.bBoxPtr[gidx].bottom=bot;
-    groups.areaPtr[gidx]=(bot-top)*(right-left);
+    if(threadIdx.x==0)
+    {
+        count_ptr[gidx]=counter;
+        groups.comPtr[gidx].x=com[0]/counter;
+        groups.comPtr[gidx].y=com[1]/counter;
+        groups.veloPtr[gidx].x=velo[0]/counter;
+        groups.veloPtr[gidx].y=velo[1]/counter;
+        groups.bBoxPtr[gidx].left=left;
+        groups.bBoxPtr[gidx].top=top;
+        groups.bBoxPtr[gidx].right=right;
+        groups.bBoxPtr[gidx].bottom=bot;
+        float area=(bot-top)*(right-left);
+        groups.areaPtr[gidx]=area;
+        //printf("%d,%f/",gidx,area);
+    }
 }
 __global__ void  groupProp(int* labelidx,Groups groups,TracksInfo trkinfo)
 {
@@ -456,10 +461,12 @@ __global__ void rankingKernel(int* overLap,int nFeatures
 {
     int oldN = gridDim.x;
     int newN = blockDim.x;
-
-    int oldIdx = blockIdx.x,newIdx = threadIdx.y;
-    if(vacancy[newIdx])
+    int oldIdx = blockIdx.x,newIdx = threadIdx.x;
+    int* mutexOld=lockOld+oldIdx,* mutexNew=lockOld+oldIdx;
+    //printf("%d,%d|",oldIdx,newIdx);
+    if(vacancy[oldIdx]&&newIdx)
     {
+
         float overLapVal = overLap[oldIdx*nFeatures+newIdx];
         GroupTrack& oldTrk = groupsTrk[oldIdx];
         float areaOld = *(oldTrk.getCur_(oldTrk.areaPtr));
@@ -468,24 +475,105 @@ __global__ void rankingKernel(int* overLap,int nFeatures
         float scrNew = overLapVal/areaNew;
         float score = overLapVal/(areaOld+areaNew-overLapVal);
         //unsigned char& old_lock =lockOld[oldIdx],new_lock=lockNew[newIdx];
-        int* counterNew =  rankCountNew+newIdx,* counterOld = rankCountOld+oldIdx;
-        if(score>0.5)
+        int* counterNew =  rankCountNew+newIdx,*counterOld = rankCountOld+oldIdx;
+        float* oldScr = scoreOld+oldIdx*nFeatures,*newScr = scoreNew+newIdx*nFeatures;
+        int* rankOld = rankingOld+oldIdx*nFeatures,*rankNew = rankingNew+newIdx*nFeatures;
+
+        if(scrOld>0.9)
         {
-            int pos = atomicAdd(counterOld,1);
-            scoreOld[pos]=scrOld;
-            rankingOld[pos]=newIdx;
+
+            bool isSet = false;
+            do
+            {
+                if (isSet = atomicCAS(mutexOld, 0, 1) == 0)
+                {
+                    // critical section goes here
+                    int curCount = *rankCountOld;
+                    int insertPos=0;
+                    for(insertPos=0;insertPos<curCount;insertPos++)
+                    {
+                        if(scrOld<oldScr[insertPos])
+                        {
+                            break;
+                        }
+                    }
+                    float tempScr=oldScr[insertPos];
+                    int tempIdx=rankOld[insertPos];
+                    oldScr[insertPos]=scrOld;
+                    rankOld[insertPos]=tempIdx;
+                    int i=0;
+                    for(i=insertPos+1;i<curCount+1;i++)
+                    {
+                        oldScr[i]=tempScr;
+                        rankOld[i]=tempIdx;
+                        tempScr=oldScr[i+1];
+                        tempIdx=rankOld[i+1];
+                    }
+
+                }
+                if (isSet)
+                {
+                    mutexOld = 0;
+                }
+            }
+            while (!isSet);
+            //printf("%f,%d,%d,%f,%f,%d|",overLapVal,oldIdx,newIdx,areaNew,scrNew);
+//            int pos = atomicAdd(counterOld,1);
+//            oldScr[pos]=scrNew;
+//            rankOld[pos]=newIdx;
+
         }
-        if(score>0.5)
+        if(scrNew>0.9)
         {
-            int pos = atomicAdd(counterNew,1);
-            scoreNew[pos]=scrNew;
-            rankingNew[pos]=oldIdx;
+            /*
+            bool isSet = false;
+            do
+            {
+                if (isSet = atomicCAS(mutexNew, 0, 1) == 0)
+                {
+                    // critical section goes here
+                    int curCount = *rankCountNew;
+                    int insertPos=0;
+                    for(insertPos=0;insertPos<curCount;insertPos++)
+                    {
+                        if(scrNew<newScr[insertPos])
+                        {
+                            break;
+                        }
+                    }
+                    float tempScr=newScr[insertPos];
+                    int tempIdx=rankNew[insertPos];
+                    newScr[insertPos]=scrNew;
+                    rankNew[insertPos]=tempIdx;
+                    int i=0;
+                    for(i=insertPos+1;i<curCount+1;i++)
+                    {
+                        newScr[i]=tempScr;
+                        rankNew[i]=tempIdx;
+                        tempScr=newScr[i+1];
+                        tempIdx=rankNew[i+1];
+                    }
+
+                }
+                if (isSet)
+                {
+                    mutexNew = 0;
+                }
+            }
+            while (!isSet);
+            */
+
+//            int pos = atomicAdd(counterNew,1);
+//            newScr[pos]=scrOld;
+//            rankNew[pos]=oldIdx;
         }
+
     }
 }
 void CrowdTracker::matchGroups()
 {
     /** compute Score**/
+
     int streamIdx=0;
 //    for(int i=0;i<groups->numGroups;i++)
 //    {
@@ -493,35 +581,49 @@ void CrowdTracker::matchGroups()
     overLap->toZeroD();
     for(int j=0;j<groupsTrk->numGroup;j++)
     {
-        if((*groupsTrk->vacancy)[j])
+        int vacancyVal = (*groupsTrk->vacancy)[j];
+        if(vacancyVal )
         {
-            std::cout<<"old:"<<j<<std::endl;
+            //std::cout<<"old:"<<j<<std::endl;
             BBox* bBox=groupsTrk->getCurBBox(j);
             int maxW=bBox->right-bBox->left,maxH=bBox->bottom-bBox->top;
-            std::cout<<"bBox:"<<bBox->right<<","<<bBox->left<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
+            if(maxW>0&&maxH>0)
+            {
+            //std::cout<<"bBox:"<<bBox->right<<","<<bBox->left<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
             dim3 block(32, 32,1);
             dim3 grid(divUp(maxW,32),divUp(maxH,32),groups->numGroups);
-            std::cout<<"grid:"<<grid.x<<","<<grid.y<<std::endl;
-            std::cout<<"block:"<<block.x<<","<<block.y<<std::endl;
-            matchGroupKernel<<<grid,block,0, streams[streamIdx] >>>((*groupsTrk)[j],*groups,j
+            //std::cout<<"grid:"<<grid.x<<","<<grid.y<<std::endl;
+            //std::cout<<"block:"<<block.x<<","<<block.y<<std::endl;
+            //if(grid.x>0&&grid.y>0)
+            matchGroupKernel<<<grid,block,0, streams[streamIdx]>>>((*groupsTrk)[j],*groups,j
                                                                     ,overLap->gpu_ptr(),nFeatures,renderMask->gpu_ptr(),clrvec->gpu_ptr());
+//            else
+//            {
+
+//                curStatus=ERROR;
+//            }
+            }
             streamIdx=(streamIdx+1)%MAXSTREAM;
         }
     }
 //    }
     // ranking
+    std::clock_t start=std::clock();
     clearLock();
     rankCountNew->toZeroD();
     rankCountOld->toZeroD();
     overLap->SyncD2H();
+
     for(int i=0;i<groupsTrk->numGroup;i++)
     {
         for(int j=0;j<groups->numGroups;j++)
         {
+            //std::cout<<"("<<(*overLap)[i*nFeatures+j]<<","<<groupsTrk->getCurArea(i)<<","<<(*(groups->area))[j]<<")";
             std::cout<<(*overLap)[i*nFeatures+j]<<",";
         }
         std::cout<<std::endl;
     }
+
     if(groupsTrk->numGroup>0&&groups->numGroups)
     {
         rankingKernel<<<groupsTrk->numGroup,groups->numGroups>>>(overLap->gpu_ptr(),nFeatures
@@ -531,41 +633,31 @@ void CrowdTracker::matchGroups()
                                                              ,groupsTrk->groupTracks->gpu_ptr(),*groups
                                                              ,groupsTrk->vacancy->gpu_ptr());
     }
-}
-void CrowdTracker::updateGroupsTracks()
-{
-    // Update Tracking Group
     rankCountOld->SyncD2H();
     rankCountNew->SyncD2H();
     rankingNew->SyncD2H();
     rankingOld->SyncD2H();
+    scoreNew->SyncD2H();
+    scoreOld->SyncD2H();
+
+    std::cout<<"overLap"<<std::endl;
     for(int i=0;i<groupsTrk->numGroup;i++)
     {
-        if((*rankCountOld)[i]>0)
+        int numChild = (*rankCountOld)[i];
+        int* rankOld=rankingOld->cpu_ptr()+i*nFeatures;
+        float* scrOld = scoreOld->cpu_ptr()+i*nFeatures;
+        std::cout<<i<<">>>>";
+        for(int j=0;j<numChild;j++)
         {
-            std::cout<<"update:"<<i<<std::endl;
-            //update
-            groupsTrk->getPtr(i)->updateFrom(groups,(*rankingOld)[i*nFeatures]);
+            std::cout<<"("<<rankOld[j]<<","<<scrOld[j]<<")";
         }
-        else
-        {
-            //lost
-            std::cout<<"lost:"<<i<<std::endl;
-            groupsTrk->clear(i);
-        }
+        std::cout<<std::endl;
     }
-    // Adding New Group
-    for(int i=1;i<groups->numGroups;i++)
-    {
-        if(!(*rankCountNew)[i])
-        {
-            int addidx = groupsTrk->addGroup(groups,i);
-            std::cout<<"adding:"<<i<<"added:"<<addidx<<std::endl;
-            BBox* bBox=groupsTrk->getCurBBox(addidx);
-            std::cout<<"bBox:"<<bBox->right<<","<<bBox->left<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
-        }
-    }
+
+    float duration = ( std::clock() - start ) / (float) CLOCKS_PER_SEC;
+    std::cout<<"match Time:"<<duration<<std::endl;
 }
+
 void CrowdTracker::findPoints()
 {
     std::cout<<"applySegMask"<<std::endl;
@@ -619,7 +711,7 @@ void CrowdTracker::makeGroups()
     for(int i=0;i<groups->numGroups;i++)
     {
         BBox& bbox= (*groups->bBox)[i];
-        std::cout<<i<<":"<<bbox.top<<","<<bbox.left<<","<<bbox.bottom<<","<<bbox.right<<std::endl;
+        //std::cout<<i<<":"<<bbox.top<<","<<bbox.left<<","<<bbox.bottom<<","<<bbox.right<<std::endl;
     }
     /*
     for(int i=1;i<=groupN;i++)

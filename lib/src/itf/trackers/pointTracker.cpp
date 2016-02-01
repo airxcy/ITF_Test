@@ -288,9 +288,9 @@ void CrowdTracker::PointTracking()
 }
 int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
 {
-    //if(fidx!=16)
-    {
-    updateGroupsTracks();
+    std::clock_t start=std::clock();
+    curStatus=FINE;
+
 
     frameidx=fidx;
     std::cout<<"frameidx:"<<frameidx<<std::endl;
@@ -298,9 +298,12 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
 
     Mat curframe(frame_height,frame_width,CV_8UC3,framedata);
     rgbMat.upload(curframe);
-    gpu::cvtColor(rgbMat,gpuGray,CV_RGB2GRAY);
+
+    //if(fidx!=16)
+        gpu::cvtColor(rgbMat,gpuGray,CV_RGB2GRAY);
 
     PointTracking();
+    std::cout<<"here"<<std::endl;
     findPoints();
     filterTrackGPU();
     /** Grouping  **/
@@ -331,17 +334,53 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
 
             clrvec->SyncH2D();
             matchGroups();
+
+            updateGroupsTracks();
         }
     }
 
     tracksGPU->Sync();
     PersExcludeMask();
-
     Render(framedata);
-    }
+    float duration = ( std::clock() - start ) / (float) CLOCKS_PER_SEC;
+    std::cout<<"Total Time"<<duration<<std::endl;
     return 1;
 }
+void CrowdTracker::updateGroupsTracks()
+{
+    // Update Tracking Group
 
+    std::clock_t start=std::clock();
+    for(int i=0;i<groupsTrk->numGroup;i++)
+    {
+        if((*rankCountOld)[i]>0)
+        {
+            std::cout<<"update:"<<i<<std::endl;
+            //update
+            groupsTrk->getPtr(i)->updateFrom(groups,(*rankingOld)[i*nFeatures]);
+        }
+        else
+        {
+            //lost
+            std::cout<<"lost:"<<i<<std::endl;
+            groupsTrk->clear(i);
+        }
+    }
+    // Adding New Group
+
+    for(int i=1;i<groups->numGroups;i++)
+    {
+        if(!(*rankCountNew)[i])
+        {
+            int addidx = groupsTrk->addGroup(groups,i);
+            //std::cout<<"adding:"<<i<<"added:"<<addidx<<std::endl;
+            BBox* bBox=groupsTrk->getCurBBox(addidx);
+            //std::cout<<"bBox:"<<bBox->left<<","<<bBox->right<<","<<bBox->top<<","<<bBox->bottom<<std::endl;
+        }
+    }
+    float duration = ( std::clock() - start ) / (float) CLOCKS_PER_SEC;
+    std::cout<<"Total ReGroup Time"<<duration<<std::endl;
+}
 void CrowdTracker::newBFS()
 {
     label->toZeroH();

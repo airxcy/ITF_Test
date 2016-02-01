@@ -12,7 +12,7 @@
 #include "itf/trackers/buffers.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/gpu/gpu.hpp>
-
+#include <ctime>
 
 
 #define PI 3.14159265
@@ -59,7 +59,7 @@ private:
     cv::gpu::GpuMat minMaxbuf_;
     cv::gpu::GpuMat tmpCorners_;
 };
-
+enum TrackerStatus {FINE=0,ERROR};
 class CrowdTracker
 {
 public:
@@ -95,6 +95,7 @@ public:
     unsigned char* getClrvec(){return clrvec->cpu_ptr();}
     Groups* getGroups(){return groups;}
     GroupTracks& getGroupsTrk(){return *groupsTrk;}
+    TrackerStatus curStatus;
 private:
     /** Basic **/
     int frame_width=0, frame_height=0;

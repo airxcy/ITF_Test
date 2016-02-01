@@ -286,12 +286,11 @@ void StreamThread::streaming()
                     start=std::clock() ;
                     fcounter=0;
                 }
-                pause=true;
+                pause=tracker->curStatus;
             }
             vwriter.release();
             break;
         }
-
         else
         {
             //emit debug( "init Failed");
