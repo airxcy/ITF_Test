@@ -323,6 +323,7 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
         newBFS();
         if(groupN>0)
         {
+            updateGroupsTracks();
             if(groupN>maxgroupN)maxgroupN=groupN;
 
             unsigned char* h_clrvec=clrvec->cpu_ptr();
@@ -335,7 +336,7 @@ int CrowdTracker::updateAframe(unsigned char* framedata, int fidx)
             clrvec->SyncH2D();
             matchGroups();
 
-            updateGroupsTracks();
+
         }
     }
 

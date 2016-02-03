@@ -479,16 +479,20 @@ __global__ void rankingKernel(int* overLap,int nFeatures
         float* oldScr = scoreOld+oldIdx*nFeatures,*newScr = scoreNew+newIdx*nFeatures;
         int* rankOld = rankingOld+oldIdx*nFeatures,*rankNew = rankingNew+newIdx*nFeatures;
 
-        if(scrOld>0.9)
+        if(scrOld>0.1)
         {
-
+            int curCount = *counterOld;
+            if(curCount<3)
+            {
             bool isSet = false;
+            int counter=0;
             do
             {
-                if (isSet = atomicCAS(mutexOld, 0, 1) == 0)
+                if (isSet = (atomicCAS(mutexOld, 0, 1) == 0))
                 {
+
                     // critical section goes here
-                    int curCount = *rankCountOld;
+
                     int insertPos=0;
                     for(insertPos=0;insertPos<curCount;insertPos++)
                     {
@@ -500,7 +504,8 @@ __global__ void rankingKernel(int* overLap,int nFeatures
                     float tempScr=oldScr[insertPos];
                     int tempIdx=rankOld[insertPos];
                     oldScr[insertPos]=scrOld;
-                    rankOld[insertPos]=tempIdx;
+                    rankOld[insertPos]=newIdx;
+
                     int i=0;
                     for(i=insertPos+1;i<curCount+1;i++)
                     {
@@ -509,30 +514,39 @@ __global__ void rankingKernel(int* overLap,int nFeatures
                         tempScr=oldScr[i+1];
                         tempIdx=rankOld[i+1];
                     }
-
+                    printf("[in,%f,%d,%d]",oldScr[insertPos],oldIdx,rankOld[insertPos]);
+                    (*counterOld)++;
                 }
                 if (isSet)
                 {
                     mutexOld = 0;
                 }
+                counter++;
+
             }
-            while (!isSet);
+            while (!isSet&&counter<10000);
+            //if(counter>=1000)printf("{in,%d,%d}",oldIdx,newIdx);
+            }
             //printf("%f,%d,%d,%f,%f,%d|",overLapVal,oldIdx,newIdx,areaNew,scrNew);
 //            int pos = atomicAdd(counterOld,1);
 //            oldScr[pos]=scrNew;
 //            rankOld[pos]=newIdx;
 
         }
-        if(scrNew>0.9)
+        if(scrNew>0.1)
         {
-            /*
+            int curCount = *counterNew;
+            if(curCount<3)
+            {
             bool isSet = false;
+            int counter=0;
             do
             {
-                if (isSet = atomicCAS(mutexNew, 0, 1) == 0)
+                if (isSet = (atomicCAS(mutexNew, 0, 1) == 0))
                 {
+
                     // critical section goes here
-                    int curCount = *rankCountNew;
+
                     int insertPos=0;
                     for(insertPos=0;insertPos<curCount;insertPos++)
                     {
@@ -544,7 +558,8 @@ __global__ void rankingKernel(int* overLap,int nFeatures
                     float tempScr=newScr[insertPos];
                     int tempIdx=rankNew[insertPos];
                     newScr[insertPos]=scrNew;
-                    rankNew[insertPos]=tempIdx;
+                    rankNew[insertPos]=oldIdx;
+
                     int i=0;
                     for(i=insertPos+1;i<curCount+1;i++)
                     {
@@ -553,21 +568,24 @@ __global__ void rankingKernel(int* overLap,int nFeatures
                         tempScr=newScr[i+1];
                         tempIdx=rankNew[i+1];
                     }
-
+                    printf("[in,%f,%d,%d]",newScr[insertPos],newIdx,rankNew[insertPos]);
+                    (*counterNew)++;
                 }
                 if (isSet)
                 {
                     mutexNew = 0;
                 }
+                counter++;
+
             }
-            while (!isSet);
-            */
+            while (!isSet&&counter<10000);
 
 //            int pos = atomicAdd(counterNew,1);
 //            newScr[pos]=scrOld;
 //            rankNew[pos]=oldIdx;
         }
 
+    }
     }
 }
 void CrowdTracker::matchGroups()
@@ -623,7 +641,6 @@ void CrowdTracker::matchGroups()
         }
         std::cout<<std::endl;
     }
-
     if(groupsTrk->numGroup>0&&groups->numGroups)
     {
         rankingKernel<<<groupsTrk->numGroup,groups->numGroups>>>(overLap->gpu_ptr(),nFeatures
@@ -640,7 +657,7 @@ void CrowdTracker::matchGroups()
     scoreNew->SyncD2H();
     scoreOld->SyncD2H();
 
-    std::cout<<"overLap"<<std::endl;
+    std::cout<<"ranking"<<std::endl;
     for(int i=0;i<groupsTrk->numGroup;i++)
     {
         int numChild = (*rankCountOld)[i];

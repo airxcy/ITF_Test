@@ -150,7 +150,7 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
             }
         }
 
-        linepen.setWidth(2);
+        linepen.setWidth(0);
         linepen.setColor(QColor(255,255,255));
         painter->setPen(linepen);
         for(int i =0;i<groupsTrk.numGroup;i++)
@@ -187,7 +187,7 @@ void TrkScene::drawBackground(QPainter * painter, const QRectF & rect)
             painter->setPen(linepen);
             painter->drawText(com[i].x,com[i].y,QString::number(i));
             float dstx=com[i].x+groupVelo[i].x,dsty=com[i].y+groupVelo[i].y;
-            linepen.setWidth(4);
+            linepen.setWidth(0);
             painter->setPen(linepen);
             painter->drawLine(com[i].x,com[i].y,dstx,dsty);
             linepen.setColor(QColor(0,0,0));
